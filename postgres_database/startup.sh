@@ -125,6 +125,11 @@ sudo -u postgres ${PG_BIN}/psql -p ${DB_PORT} -d ${DB_NAME} << EOF
 GRANT ALL ON SCHEMA public TO ${DB_USER};
 GRANT CREATE ON SCHEMA public TO ${DB_USER};
 
+-- Ensure required extensions exist (run as superuser).
+-- Migrations also include CREATE EXTENSION IF NOT EXISTS, but doing it here avoids permission surprises.
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS citext;
+
 -- Show current permissions for debugging
 \dn+ public
 EOF
@@ -141,6 +146,20 @@ export POSTGRES_PASSWORD="${DB_PASSWORD}"
 export POSTGRES_DB="${DB_NAME}"
 export POSTGRES_PORT="${DB_PORT}"
 EOF
+
+# Run migrations and (optionally) seed data.
+# To opt out, set:
+#   DB_RUN_MIGRATIONS=false
+#   DB_RUN_SEEDS=false
+if [ "${DB_RUN_MIGRATIONS:-true}" = "true" ]; then
+    echo "Running database migrations..."
+    bash "$(dirname "$0")/migrate.sh"
+fi
+
+if [ "${DB_RUN_SEEDS:-true}" = "true" ]; then
+    echo "Seeding development data (idempotent)..."
+    bash "$(dirname "$0")/seed.sh"
+fi
 
 echo "PostgreSQL setup complete!"
 echo "Database: ${DB_NAME}"

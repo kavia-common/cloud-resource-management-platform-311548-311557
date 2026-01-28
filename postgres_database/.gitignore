@@ -1,1 +1,4 @@
 .env
+db_connection.txt
+db_visualizer/postgres.env
+db_visualizer/*.env
